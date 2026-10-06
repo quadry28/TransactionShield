@@ -1,42 +1,51 @@
-# Transaction Shield
+﻿# Transaction Shield
 
-## Problem
+A fictional, manual-capture prototype for preparing transaction evidence for a payment processor dispute / representment submission. The problem and hospitality evidence policy still need merchant validation.
 
-Nigeria's nightlife and hospitality industry — VIP tables, bottle service, private events — has a chargeback gap: customers, often international visitors, run up high-value charges at a venue and then, after leaving Nigeria, dispute the transaction with their card issuer, claiming it was unauthorized or the service was never received.
+## Run
 
-By the time the dispute lands, the customer is gone and the merchant usually has no organized proof on hand — no record that the customer verified their phone, explicitly authorized the exact amount, or actually checked in and received the service. Fighting the chargeback becomes a scramble to reconstruct what happened from scattered receipts, POS logs, and WhatsApp threads, and merchants frequently lose disputes they should be able to win.
+Open `transaction-shield.html` in a modern browser with the adjacent JavaScript and CSS files present. No build or dependencies are required. Alternatively, from this directory:
 
-## What Transaction Shield does
+```powershell
+python -m http.server 8765 --bind 127.0.0.1
+```
 
-Transaction Shield is an evidence layer that sits alongside a merchant's existing payment providers (Moniepoint, OPay, PalmPay, Flutterwave) and automatically compiles the proof needed to defend a transaction — phone verification, explicit customer authorization, itemized receipts, and fulfillment/check-in confirmation — before a dispute ever happens. It does not move money or replace the payment provider; it connects the evidence each one already generates into one record, and organizes it into a representment-ready package if a chargeback is filed.
+Then visit `http://127.0.0.1:8765/transaction-shield.html`.
 
-The prototype models this end-to-end for the highest-risk case: a high-value, international-card, VIP/hospitality transaction, including two edge cases specific to nightlife bookings that generic dispute tooling doesn't handle:
+## Walkthrough
 
-### Guest vs. cardholder mismatch
+1. Inspect fictional TS-10482: a Nigerian VIP table / bottle-service booking for NGN 3,500,000 paid by international card, with a fictional Paystack reference. Four manually referenced records are present; Customer Context is missing.
+2. Under Customer Context, select **Add evidence**, then **Use fictional sample** (or enter/reference/upload your own fictional sample). Confirm the fictional-data checkbox and save.
+3. Inspect the captured evidence and provenance. Complete the additional source-review checks and explain their basis. Capturing a message alone does not close this gap.
+4. Open **Review package** and inspect the complete evidence, provenance and limitations. Confirm merchant review to finalize the current revision.
+5. Download the reviewed JSON package. It includes source provenance, file bytes when uploaded, the provisional policy, checklist and review metadata. Nothing is submitted.
 
-A table or event is often booked and paid for by one person but attended by someone else — a company books and pays for a delegate, a host pays for a guest of honor. If the cardholder wasn't physically present, "Transaction Not Recognized" is an easy claim to make, and proof that *the cardholder* authorized the charge doesn't by itself prove they authorized *this specific guest's attendance*. The prototype tracks the lead guest separately from the cardholder whenever they differ, records how the booking was arranged (e.g. "booked centrally by Robert for his firm's conference delegation"), and surfaces this as an explicit evidence gap rather than silently treating cardholder authorization as sufficient.
+Draft export is available with explicit gaps and draft status. A recorded manual follow-up sends nothing and never closes a gap. Changing any evidence revokes package approval; replacing Customer Context requires a new source review. Changing sample service timing clears booking and fulfillment records and demonstrates not-yet-due assessment.
 
-### Split payments
+Use fictional data only. All changes and uploaded files remain in session memory and are lost on refresh/reset. The prototype does not load the old build's local-storage records. It has no identity-data collection flow, API integrations, messaging, submission, durable evidence storage or merchant access control.
 
-A booking is sometimes paid by more than one person — a group splitting a table, family members each covering part of a deposit. Each payer's charge, payment reference, and authorization are tracked independently rather than as one lump transaction. This matters because a chargeback comes from one payer's card issuer at a time: a complaint from any single payer can only be defended with *that person's* payment and authorization proof, not the group's evidence as a whole. The prototype shows per-payer authorization status and lets the merchant chase down verification from whichever payer hasn't confirmed yet.
+## Scope and unresolved policy
 
-### Risk scoring model
+[Product specification](docs/product-spec.md) is authoritative. [Prototype decisions](docs/prototype-decisions.md) records the undefined requirements identified before implementation and the explicit provisional assumptions. The UI and exports label the checklist as unvalidated; no Paystack acceptance requirements are asserted.
 
-Every transaction gets a rule-based risk score (0–100) that decides how much evidence Transaction Shield asks for — it's deliberately not a machine-learning fraud probability, so a merchant can always see exactly which factors drove the score. Points stack from a fixed set of factors:
+Merchant interviews must establish the actual evidence requirements, operational owner, communication sources, collection bottleneck and processor format. No adoption, monitored-volume, dispute-outcome or compliance conclusions are claimed.
 
-| Factor | Points |
-| --- | --- |
-| International card | +28 |
-| High-value transaction (≥ ₦1,000,000) | +21 |
-| *or* above-average value (₦250,000–999,999) | +12 |
-| First transaction with this customer | +15 |
-| VIP / hospitality / nightlife purchase | +18 |
-| *or* other service-based transaction | +8 |
-| No card reference on file (paid by transfer) | +6 |
+## Files and checks
 
-The score (capped at 100) maps to three tiers — **Low** (< 30), **Medium** (30–59), **High** (≥ 60) — which in turn set the evidence requirement shown elsewhere in the app: Standard, Enhanced, or Additional. A Low-risk transaction doesn't even require phone verification; Medium and High do. The hospitality weighting is the sharpest lever in the model, reflecting that VIP table/bottle-service purchases carry an outsized friendly-fraud and chargeback rate industry-wide — which is exactly the pattern this prototype exists to catch.
+- `transaction-shield.html`: application entry point.
+- `prototype.css`: responsive interface styles.
+- `prototype-core.js`: evidence, provenance, assessment and review model.
+- `prototype-app.js`: manual capture and package review interface.
+- `prototype.test.js`: dependency-free model and render tests.
+- `PLAN.md`: validation questions and deferred product ideas; the specification supersedes historical scope.
+- `CHANGELOG.md`: history, including the previous broader demo.
 
-## This repo
+Run the automated checks with Node.js:
 
-- `transaction-shield.html` — single-file prototype (HTML/CSS/JS, no build step, hash-based routing).
-- `CHANGELOG.md` — build history and design decisions, including how the prototype was matched against a reference demo.
+```powershell
+node --check prototype-core.js
+node --check prototype-app.js
+node --test prototype.test.js
+```
+
+The 11 checks cover the initial gap, provenance validation, Customer Context scrutiny, follow-ups, deadline transitions, review gating/invalidation, attachment export, route rendering and HTML escaping. They are model and DOM-stub checks, not a real-browser suite. Visual layout and browser interactions could not be verified in this environment because the browser tool reported no browser available.

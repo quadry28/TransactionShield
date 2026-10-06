@@ -1,3 +1,5 @@
+> **Scope notice (2026-09-20):** This is historical planning material and unvalidated product hypotheses. The current prototype follows [docs/product-spec.md](docs/product-spec.md) and [docs/prototype-decisions.md](docs/prototype-decisions.md). WhatsApp/OTP automation, integrations, risk scoring, and broader flows described below are not implemented in the current prototype. No operational or outcome claims below should be read as validated evidence.
+
 # Transaction Shield — MVP Plan
 
 ## The wedge (a hypothesis, not yet validated)
